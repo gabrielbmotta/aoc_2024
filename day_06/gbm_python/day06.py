@@ -42,6 +42,7 @@ class Grid:
         self.pos_history = set()
         self.pos_dir_history = set()
         self.loop_tally = 0
+        self.extra_loc = set()
 
     def traverse(self):
         dir = Direction.N
@@ -67,9 +68,12 @@ class Grid:
             if not self.pos_in_bounds(next):
                 break
 
-            if self.data[next[0]][next[1]] == '#':
+            while self.data[next[0]][next[1]] == '#':
                 dir = rotate_dir(dir)
                 self.data[pos[0]][pos[1]] = '+'
+                self.pos_history.add(pos)
+                self.pos_dir_history.add((pos, dir))
+                next = self.next_pos(pos, dir)
                 continue
 
             self.check_loop(pos, next, dir)
@@ -79,32 +83,40 @@ class Grid:
     def check_loop(self, pos, next, dir):
         self.pos_history.add(pos)
         self.pos_dir_history.add((pos, dir))
-        if next in self.pos_history:
-            return
 
+        extra_bob = next
+        if extra_bob in self.extra_loc or extra_bob in self.pos_history:
+            return
         new_loop_catch_pos_dir = set()
 
         dir = rotate_dir(dir)
-        pos = self.next_pos(pos, dir)
+        next = self.next_pos(pos, dir)
+        if self.data[next[0]][next[1]] == '#' or next == extra_bob:
+            dir = rotate_dir(dir)
+            next = self.next_pos(pos, dir)
+        pos = next
+
         while self.pos_in_bounds(pos):
             next = self.next_pos(pos, dir)
+            new_loop_catch_pos_dir.add((pos, dir))
 
             if not self.pos_in_bounds(next):
                 break
-            if self.data[next[0]][next[1]] == '#':
+            while self.data[next[0]][next[1]] == '#' or next == extra_bob:
                 dir = rotate_dir(dir)
+                next = self.next_pos(pos, dir)
                 continue
 
             if (pos, dir) in self.pos_dir_history:
                 self.loop_tally += 1
+                self.extra_loc.add(extra_bob)
                 return
 
             pos = next
             if (pos, dir) in new_loop_catch_pos_dir:
                 self.loop_tally += 1
+                self.extra_loc.add(extra_bob)
                 return
-            new_loop_catch_pos_dir.add((pos, dir))
-
 
     def count_traversed(self):
         sum = 0
