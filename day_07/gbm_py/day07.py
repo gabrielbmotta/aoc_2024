@@ -1,40 +1,44 @@
 from copy import deepcopy
 import itertools
 
+
+def sm(a, b):
+    return a + b
+
+
+def mult(a, b):
+    return a * b
+
+
+def concat(a, b):
+    return int(f"{a}{b}")
+
+
 class Calibration:
     def __init__(self, init_str):
         brk = init_str.split(":")
         self.result = int(brk[0])
         self.operands = [int(o) for o in brk[1].split()]
         self.valid = None
-        # self.valid_operator_orders = []
+        self.operators = []
 
     def __repr__(self):
         return f"{self.result} : {self.operands}"
 
-    def check_valid(self, operators=['+', '*' ]):
-        total_ops = []
-        num_op = len(self.operands) - 1
-        op_it = itertools.product(operators, repeat=num_op)
-        for it in op_it:
-            operation = [self.operands[0]]
-            for op, num in zip(list(it), self.operands[1:]):
-                operation.append(op)
-                operation.append(num)
-            total_ops.append(operation)
-
-        for op in total_ops:
-            running_total = op[0]
-            i = 1
-            while i < len(op):
-                running_total = eval(f"{running_total}{op[i]}{op[i+1]}")
-                i += 2
-            if running_total == self.result:
-                self.valid = True
+    def check_valid(self):
+        def still_valid(total, ind):
+            # print(f"total {total} {ind}")
+            if ind == len(self.operands):
+                if total == self.result:
+                    self.valid = True
+            elif total > self.result:
                 return
+            else:
+                for operator in self.operators:
+                    new_tot = operator(total, self.operands[ind])
+                    still_valid(new_tot, ind+1)
 
-
-
+        still_valid(0, 0)
 
 
 def load_data(path):
@@ -43,9 +47,19 @@ def load_data(path):
     return [Calibration(line) for line in lines]
 
 
+def sum_of_valid(data, operators):
+    rollling_sum = 0
+    for cal in data:
+        cal.operators = operators
+        cal.check_valid()
+        if cal.valid:
+            rollling_sum += cal.result
+
+    return rollling_sum
+
+
 if __name__ == "__main__":
     for file in ["test.txt", "input.txt"]:
-    # for file in ["test.txt"]:
         print(f"== Parsing {file} ==")
         try:
             data = load_data(file)
@@ -53,10 +67,7 @@ if __name__ == "__main__":
             print("[!] File not found, skipping.")
             continue
 
-        rollling_sum = 0
-        for cal in data:
-            cal.check_valid()
-            if cal.valid:
-                rollling_sum += cal.result
-        print(f"Part 1: {rollling_sum}")
-        # print(f"Part 1: {sum_middle_page(corrected)}")
+        operators = [sm, mult]
+        print(f"Part 1: {sum_of_valid(data, operators)}")
+        operators.append(concat)
+        print(f"Part 2: {sum_of_valid(data, operators)}")
