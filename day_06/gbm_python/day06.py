@@ -39,6 +39,9 @@ class Grid:
         self.y_lim = len(data)
         self.x_lim = len(data[0])
         self.turn_track = []
+        self.pos_history = set()
+        self.pos_dir_history = set()
+        self.loop_tally = 0
 
     def traverse(self):
         dir = Direction.N
@@ -69,7 +72,39 @@ class Grid:
                 self.data[pos[0]][pos[1]] = '+'
                 continue
 
+            self.check_loop(pos, next, dir)
+
             pos = next
+
+    def check_loop(self, pos, next, dir):
+        self.pos_history.add(pos)
+        self.pos_dir_history.add((pos, dir))
+        if next in self.pos_history:
+            return
+
+        new_loop_catch_pos_dir = set()
+
+        dir = rotate_dir(dir)
+        pos = self.next_pos(pos, dir)
+        while self.pos_in_bounds(pos):
+            next = self.next_pos(pos, dir)
+
+            if not self.pos_in_bounds(next):
+                break
+            if self.data[next[0]][next[1]] == '#':
+                dir = rotate_dir(dir)
+                continue
+
+            if (pos, dir) in self.pos_dir_history:
+                self.loop_tally += 1
+                return
+
+            pos = next
+            if (pos, dir) in new_loop_catch_pos_dir:
+                self.loop_tally += 1
+                return
+            new_loop_catch_pos_dir.add((pos, dir))
+
 
     def count_traversed(self):
         sum = 0
@@ -122,6 +157,5 @@ if __name__ == "__main__":
             continue
         grid = Grid(data)
         grid.traverse()
-        # grid.print()
         print(f"Part 1: {grid.count_traversed()}")
-        # print(f"Part 1: {sum_middle_page(corrected)}")
+        print(f"Part 2: {grid.loop_tally}")
